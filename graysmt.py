@@ -5,7 +5,7 @@ import z3
 solver = z3.Solver()
 
 inputalphabet = {"a","b","c"}
-outputalphabet = {"1","0"}
+outputalphabet = {"A","B"}
 domain = {"","a","b","c","ac","bc","acc","bcc"}
 
 Table_sharp = {}
@@ -52,30 +52,52 @@ for element1 in domain:
 	for element2 in domain:
 		E[element1][element2] = z3.Bool("E_"+element1+"_"+element2)
 			#Better E[element1][element2] or E[element1[element2]] in python?
-			
+		
+bound = 3
+	
 f = {}
 f_bot = {}
-f_length = {}
+f_char = {}
 for element in domain:
+	f_char[element] = []
 	f[element] = z3.String("f_"+element)
-	f_length[element] = z3.Int("f_"+element+"_length")
 	f_bot[element] = z3.Bool("f_"+element+"_bot")
+	for index in range(bound):
+		f_char[element].append(z3.String("f_char_"+element+"_"+str(index)))
 	
-bound = 3
 i_value = z3.Int("i")
 
 ################ Def outputvalues
 
 outvalues = []
+conj = {}
+disj = {}
 for element in domain:
-	disj = []
-	for letter in outputalphabet:
-		disj.append(z3.Or(z3.Contains(letter,z3.SubSeq(f[element],i_value,1))))
-	outvalues.append(
-	z3.And(
-	(z3.Length(f[element]) == f_length[element]), ( z3.Length(f[element]) < bound),
-	z3.ForAll([i_value],z3.Implies(z3.And((i_value < f_length[element]),(i_value >= 0)),z3.And(disj)))
-	))
+	conj[element] = []
+	disj[element] = {}
+	for index in range(bound):
+		disj[element][index] = []
+		disj[element][index].append(z3.PrefixOf(f_char[element][index],""))
+		for letter in outputalphabet:
+			disj[element][index].append(z3.And(
+			z3.PrefixOf(f_char[element][index],letter),
+			z3.PrefixOf(letter,f_char[element][index])))
+		if index > 0:
+			conj[element].append(z3.Implies(
+			z3.PrefixOf(f_char[element][index-1],""),
+			z3.PrefixOf(f_char[element][index],"")))
+		conj[element].append(z3.And(
+		z3.SubSeq(f[element],index,1) == f_char[element][index],
+		z3.Or(disj[element][index])))
+	outvalues.append(z3.And(conj[element]))
+
+
+#		disj.append(z3.Or(z3.Contains(letter,z3.SubSeq(f[element],i_value,1))))
+#	outvalues.append(
+#	z3.And(
+#	(z3.Length(f[element]) == f_length[element]), ( z3.Length(f[element]) < bound),
+#	z3.ForAll([i_value],z3.Implies(z3.And((i_value < f_length[element]),(i_value >= 0)),z3.And(disj)))
+#	))
 
 
 ################ Def equivalence
@@ -423,8 +445,9 @@ def_20.append(z3.And(eq20_6))
 #print(z3.solve(z3.And(def_eq,def_20)))
 
 formula = []
+fo = []
 formula.append(z3.And(outvalues))
 formula.append(z3.And(def_eq))
 formula.append(z3.And(def_20))
-
+#formula.append(z3.And(z3.PrefixOf("A",f_char["ac"][1])))
 print(z3.solve(formula))
