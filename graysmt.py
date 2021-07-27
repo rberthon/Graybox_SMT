@@ -67,6 +67,39 @@ for element in domain:
 	
 i_value = z3.Int("i")
 
+
+n = 4 #Size of the word recognized here. This is temporary
+
+bound_w = 3
+
+v = {}
+v_bot = {}
+w = {}
+w_bot = {}
+for index in range(n):
+	v[index] = z3.String("v_"+str(index))
+	v_bot[index] = z3.Bool("v_"+str(index)+"_bot")
+	w[index] = z3.String("w_"+str(index))
+	w_bot[index] = z3.Bool("w_"+str(index)+"_bot")
+	u = z3.String("u")
+w_out = z3.String("w_out")
+
+w_char = {}
+for index1 in range(n):
+	w_char[index1] = []
+	for index2 in range(bound_w):
+		w_char[index1].append(z3.String("w_char"+str(index1)+"_"+str(index2)))
+	
+
+delta={}
+for word in domain:
+	delta[word] = {}
+	for letter in inputalphabet:
+		delta[word][letter] = z3.String("delta_"+word+"_"+letter)
+
+
+
+
 ################ Def outputvalues
 
 outvalues = []
@@ -91,6 +124,28 @@ for element in domain:
 		z3.Or(disj[element][index])))
 	outvalues.append(z3.And(conj[element]))
 
+
+
+conj = {}
+disj = {}
+for index1 in range(n):
+	conj[index1] = []
+	disj[index1] = {}
+	for index2 in range(bound_w):
+		disj[index1][index2] = []
+		disj[index1][index2].append(z3.PrefixOf(w_char[index1][index2],""))
+		for letter in outputalphabet:
+			disj[index1][index2].append(z3.And(
+			z3.PrefixOf(w_char[index1][index2],letter),
+			z3.PrefixOf(letter,w_char[index1][index2])))
+		if index2 > 0:
+			conj[index1].append(z3.Implies(
+			z3.PrefixOf(w_char[index1][index2-1],""),
+			z3.PrefixOf(w_char[index1][index2],"")))
+		conj[index1].append(z3.And(
+		z3.SubSeq(w[index1],index2,1) == w_char[index1][index2],
+		z3.Or(disj[index1][index2])))
+	outvalues.append(z3.And(conj[index1]))
 
 #		disj.append(z3.Or(z3.Contains(letter,z3.SubSeq(f[element],i_value,1))))
 #	outvalues.append(
@@ -283,171 +338,119 @@ def_20.append(z3.And(eq20_6))
 
 ################## lemma 21
 
-##n = 5 #Size of the word recognized here. This is temporary
-
-##def_21 = []
-
-##v = {}
-##v_bot = {}
-##w = {}
-##w_bot = {}
-##for index in range(0,n):
-##	v[index] = z3.String("v_"+index)
-##	v_bot[index] = z3.Bool("v_"+index+"_bot")
-##	w[index] = z3.String("w_"+index)
-##	w_bot[index] = z3.Bool("w_"+index+"_bot")
-##	u = z3.String("u")
-##	
-##delta={}
-##for word in domain:
-##	for letter in inputalphabet:
-##		delta[word][letter] = z3.Bool("delta_"+word+"_"+letter)
+def_21 = []
 
 
-##eq21_1 = []
-##for index in range(0,n):
-##	eq21_1.append(
-##		And(
-##		(z3.UGE(z3.Length(u),index) == Not(v_bot[index])),
-##		(z3.UGE(z3.Length(u),index) == Not(w_bot[index]))
-##		)
-##		)
+eq21_1 = []
+for index in range(0,n):
+	eq21_1.append(
+		z3.And(
+		((z3.Length(u) < index) == v_bot[index]),
+		((z3.Length(u) < index) == w_bot[index])
+		)
+		)
 
-##def_21.append(z3.And(eq21_1))
-
-
-##eq21_2 = []
-##for index in range(1,n):
-##	for element1 in domain:
-##		for element2 in domain:
-##			for letter in inputalphabet:
-##				if element2+letter in domain:
-##					domain_eq21_2.append((
-##								z3.Implies(z3.UGE(z3.Length(u),index),
-##								z3.Or( z3.And( (v[index] == element1),
-##								(v[index-1] == element2),
-##								(z3.Select(u,index) == letter),
-##								E[element1][element2+letter])
-##								)
-##								)
-##								))
-
-##def_21.append(z3.And(eq21_2))
-
-##eq21_3 = [(v[0] == "")]
-
-##def_21.append(z3.And(eq21_3))
-
-##eq21_4 = []
-##for element in domain:
-##	for letter in inputalphabet:
-##		eq21_4.append(
-##		(z3.Concat(f[element],delta[element][letter]) == f[element+letter])
-##		)
-
-##def_21.append(z3.And(eq21_4))
+def_21.append(z3.And(eq21_1))
 
 
-##eq21_5 = []
-##disj = []
-##for index in range(1,n):
-##	disj[index] = []
-##	for element1 in domain:
-##		for element2 in domain:
-##			for letter in inputalphabet:
-##				if element2+letter in domain:
-##					disj[index].append(
-##					z3.And(
-##					(w[index] == element1),
-##					(v[index-1] == element2),
-##					(z3.Select(u,index) == letter),
-##					(w[index] == delta[element2+letter])
-##					))
-##	eq21_5.append(And(
-##	z3.Implies(
-##	z3.UGE(z3.Length(u),i),
-##	z3.Or(disj[index])
-##	))
+eq21_2 = []
+for index in range(1,n):
+	for element1 in domain:
+		for element2 in domain:
+			for letter in inputalphabet:
+				if element2+letter in domain:
+					eq21_2.append((
+					z3.Implies((z3.Length(u) >= index),
+					(z3.And(
+					z3.And(
+					z3.PrefixOf(v[index],element1),
+					z3.PrefixOf(element1,v[index])),
+					z3.And(
+					z3.PrefixOf(v[index-1],element2),
+					z3.PrefixOf(element2,v[index-1])),
+					z3.And(
+					z3.PrefixOf(z3.SubSeq(u,index,1),letter),
+					z3.PrefixOf(letter,z3.SubSeq(u,index,1))),
+					E[element1][element2+letter])
+					)
+					)
+					))
+
+def_21.append(z3.And(eq21_2))
+
+eq21_3 = z3.And(
+z3.PrefixOf(v[0],""),
+z3.PrefixOf("",v[0]))
+
+def_21.append(z3.And(eq21_3))
+
+eq21_4 = []
+for element in domain:
+	for letter in inputalphabet:
+		if element+letter in domain:
+			eq21_4.append(z3.And(
+			z3.PrefixOf(z3.Concat(f[element],delta[element][letter]),f[element+letter]),
+			z3.PrefixOf(f[element+letter],z3.Concat(f[element],delta[element][letter]))))
+
+def_21.append(z3.And(eq21_4))
 
 
-
-##def_21.append(z3.And(eq21_5))
-##	
-##eq21_6 = []
-##for element1 in domain:
-##	eq21_6.append(
-##	Or( And( 
-##	(v[n] == element1),
-##	(z3.Concat(f[element1],w[out]) == Table[element1])
-##	)
+eq21_5 = []
+disj = {}
+for index in range(1,n):
+	disj[index] = []
+	for element1 in domain:
+		for element2 in domain:
+			for letter in inputalphabet:
+				if element2+letter in domain:
+					disj[index].append(
+					z3.And(
+					z3.And(
+					z3.PrefixOf(w[index],element1),
+					z3.PrefixOf(element1,w[index])),
+					z3.And(
+					z3.PrefixOf(v[index-1],element2),
+					z3.PrefixOf(element2,v[index-1])),
+					z3.And(
+					z3.PrefixOf(z3.SubSeq(u,index,1),letter),
+					z3.PrefixOf(letter,z3.SubSeq(u,index,1))),
+					z3.And(
+					z3.PrefixOf(w[index],delta[element2][letter]),
+					z3.PrefixOf(delta[element2][letter],w[index]))
+					)
+					)
+	eq21_5.append(z3.And(
+	z3.Implies(
+	(z3.Length(u) >= index),
+	z3.Or(disj[index])
+	)))
 
 
 
-##def_21.append(z3.And(eq21_6))
-##		
-##############
+def_21.append(z3.And(eq21_5))
+	
+eq21_6 = []
+for element1 in domain:
+	for index in range(n):
+		eq21_6.append(
+		z3.Or( z3.Implies( 
+		z3.And(
+		z3.PrefixOf(v[index],element1),
+		z3.PrefixOf(element1,v[index])),
+		z3.And(
+		z3.PrefixOf(z3.Concat(f[element1],w_out),Table[element1]),
+		z3.PrefixOf(Table[element1],z3.Concat(f[element1],w_out)))
+		)))
 
 
-##v = {}
-##v_bot = {}
-##for index in range(0,n):
-##	v[index] = z3.String("v_"+index)
-##	v_bot[index] = z3.Bool("v_"+index+"_bot")
-##	
 
-###How to handle the size of the real counterexample?
-##eq21b_1 = []
-##for index in range(0,n):
-##	eq21b_1.append(
-##	z3.And(
-##	z3.Implies(z3.ULT(z3.Length(u),i),
-##		v_bot[index])
-##	))
-##	
+def_21.append(z3.And(eq21_6))
+		
 
-
-##eq21b_2 = []
-##disj = []
-##for index in range(1,n):
-##	for element1 in domain:
-##		for element2 in domain:
-##			for letter in inputalphabet:
-##				disj[letter] = []
-##				if element2+letter in domain: 
-##					disj[letter].append(
-##					z3.And( (v[index] == element1),
-##					(v[index-1] == element2),
-##					(z3.Select(u,index) == letter),
-##					E[element1][element2+letter]))
-##				eq21b_2.append(
-##				z3.And( 
-##				z3.Implies(z3.UGE(z3.Length(u),i),
-##				z3.Or( 
-##				z3.Or(disj[letter]),
-##				v_bot[index]
-##				)
-##				)))
-
-
-##eq21_3 = (v[0] == ""))
-
-##	
-##domain_eq21b_3 = {}
-##for element1 in domain:
-##	for element2 in domain:
-##		eq21b_3.append(
-##		And( (v[n] == element2),
-##		Implies(E[element1][element2],
-##		Not(Table_bot[element1]))
-##		))
-
-
-#print(z3.solve(z3.And(def_eq,def_20)))
 
 formula = []
-fo = []
 formula.append(z3.And(outvalues))
 formula.append(z3.And(def_eq))
 formula.append(z3.And(def_20))
-#formula.append(z3.And(z3.PrefixOf("A",f_char["ac"][1])))
+formula.append(z3.And(def_21))
 print(z3.solve(formula))
