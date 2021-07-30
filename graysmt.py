@@ -197,7 +197,6 @@ for element1 in domain:
 
 def_eq.append(z3.And(eq_3))
 
-solver.add(def_eq)
 		
 ################## lemma 20
 
@@ -453,6 +452,16 @@ def_21.append(z3.And(eq21_6))
 
 ################## Second word
 
+# Second Merging map
+
+
+E2 = {}
+for element1 in domain:
+	E2[element1] = {}
+	for element2 in domain:
+		E2[element1][element2] = z3.Bool("E2_"+element1+"_"+element2)
+
+
 # Rejected word
 
 
@@ -550,6 +559,48 @@ for index1 in range(n):
 #	))
 
 
+################ Def equivalence
+
+def_eqb = []
+
+eq_1b = []
+for element1 in domain:
+	eq_1b.append(E2[element1][element1])
+
+def_eqb.append(z3.And(eq_1b))
+		
+	
+eq_2b = []
+for element1 in domain:
+	for element2 in domain:
+		eq_2.append(
+		E2[element1][element2] == E2[element2][element1]
+		)
+		
+def_eqb.append(z3.And(eq_2b))
+
+	
+eq_3b = []
+for element1 in domain:
+	for element2 in domain:
+		for element3 in domain:
+			eq_3b.append(
+			z3.Implies(
+			z3.And(
+			E2[element1][element2]
+			,
+			E2[element2][element3]
+			)
+			,
+			E2[element1][element3]
+			)
+			)
+		
+
+def_eqb.append(z3.And(eq_3b))
+
+		
+################## lemma 20
 		
 ################## lemma 20
 
@@ -562,10 +613,10 @@ for element1 in domain:
 		eq20b_1.append(
 		z3.And(
 		z3.Implies(f2_bot[element1],
-		z3.Implies(f2_bot[element2],E[element1][element2]
+		z3.Implies(f2_bot[element2],E2[element1][element2]
 		)),
 		z3.Implies(f2_bot[element1], 
-		z3.Implies(E[element1][element2],f2_bot[element2]
+		z3.Implies(E2[element1][element2],f2_bot[element2]
 		))
 		)
 		)
@@ -622,9 +673,9 @@ for element1 in domain:
 				eq20b_4.append
 				(
 				z3.Implies
-				(z3.And(z3.Not(f2_bot[element1]),E[element1][element2]),
+				(z3.And(z3.Not(f2_bot[element1]),E2[element1][element2]),
 				z3.And(
-				E[element1+letter][element2+letter],
+				E2[element1+letter][element2+letter],
 				z3.Implies(z3.Not(f2_bot[element1+letter]),
 				z3.And(
 				z3.PrefixOf(f2[element1],
@@ -649,7 +700,7 @@ for element1 in domain:
 			z3.Implies(
 			z3.And
 			(z3.Not(Table_bot[element1]),z3.Not(Table_sharp[element1]),
-			z3.Not(Table_sharp[element2]),E[element1][element2]
+			z3.Not(Table_sharp[element2]),E2[element1][element2]
 			),
 			z3.SubSeq(Table[element1],1+z3.Length(f2[element1]),
 			z3.Length(Table[element1])-z3.Length(f2[element1]))
@@ -670,7 +721,7 @@ for element1 in domain:
 			conj[element1+letter] = []
 			for element2 in domain:
 				if element2+letter in domain:
-					conj[element1+letter].append(z3.Not(E[element1][element2]))
+					conj[element1+letter].append(z3.Not(E2[element1][element2]))
 			if conj[element1+letter] != []:
 				eq20b_6.append(
 				z3.Implies( 
@@ -720,7 +771,7 @@ for index in range(1,n+1):
 					z3.And(
 					z3.PrefixOf(z3.SubSeq(u,index,1),letter),
 					z3.PrefixOf(letter,z3.SubSeq(u,index,1))),
-					E[element1][element2+letter])
+					E2[element1][element2+letter])
 					)))
 
 def_21b.append(z3.And(eq21b_2))
@@ -735,7 +786,7 @@ for element1 in domain:
 		z3.And(
 		z3.PrefixOf(v2[n],element1),
 		z3.PrefixOf(element1,v2[n])),
-		z3.Implies(E[element1][element2],
+		z3.Implies(E2[element1][element2],
 		Table_bot[element2]
 		)
 		))
@@ -751,6 +802,7 @@ formula.append(z3.And(outvalues))
 formula.append(z3.And(def_eq))
 formula.append(z3.And(def_20))
 formula.append(z3.And(def_21))
+formula.append(z3.And(def_eqb))
 formula.append(z3.And(def_20b))
 formula.append(z3.And(def_21b))
 print(z3.solve(formula))
