@@ -6,6 +6,8 @@ solver = z3.Solver()
 
 inputalphabet = {"a","b","c"}
 outputalphabet = {"A","B"}
+
+#P_T
 domain = {"","a","b","c","ac","bc","acc","bcc"}
 
 Table_sharp = {}
@@ -46,13 +48,18 @@ Table_bot["bcc"] = False
 Table["bcc"] = ""
 
 
+
+#First Merging Map
+
+#Equivalence Relation
 E = {}
 for element1 in domain:
 	E[element1] = {}
 	for element2 in domain:
 		E[element1][element2] = z3.Bool("E_"+element1+"_"+element2)
 			#Better E[element1][element2] or E[element1[element2]] in python?
-		
+	
+#f_bound: output of a transition
 bound = 3
 	
 f = {}
@@ -67,20 +74,24 @@ for element in domain:
 	
 u = z3.String("u")
 
+#Size of the word recognized here. This is temporary
+n = 4 
 
-n = 4 #Size of the word recognized here. This is temporary
-
+#Size of the longest output associated to a letter of u <- to be merged with 
+#bound
 bound_w = 3
 
 
 # Accepted word
 
+#Transition function
 delta = {}
 for word in domain:
 	delta[word] = {}
 	for letter in inputalphabet:
 		delta[word][letter] = z3.String("delta_"+word+"_"+letter)
 
+#input letters and output fragments of the recognised word
 v = {}
 v_bot = {}
 w = {}
@@ -199,6 +210,7 @@ def_eq.append(z3.And(eq_3))
 
 		
 ################## lemma 20
+#Definition of the first merging map
 
 
 def_20 = []
@@ -334,6 +346,7 @@ def_20.append(z3.And(eq20_6))
 #solver.add(def_20)
 
 ################## lemma 21 part 1
+#Word accepted by the first merging map
 
 def_21 = []
 
@@ -451,8 +464,7 @@ for element1 in domain:
 def_21.append(z3.And(eq21_6))
 
 ################## Second word
-
-# Second Merging map
+# Second equivalence relation
 
 
 E2 = {}
@@ -462,16 +474,10 @@ for element1 in domain:
 		E2[element1][element2] = z3.Bool("E2_"+element1+"_"+element2)
 
 
-# Rejected word
+#output of the rejected word, different from the first word
 
-
-v2 = {}
-v2_bot = {}
 w2 = {}
 w2_bot = {}
-for index in range(n+1):
-	v2[index] = z3.String("v2_"+str(index))
-	v2_bot[index] = z3.Bool("v2_"+str(index)+"_bot")
 for index in range(n):
 	w2[index] = z3.String("w2_"+str(index))
 	w2_bot[index] = z3.Bool("w2_"+str(index)+"_bot")
@@ -495,6 +501,7 @@ for word in domain:
 
 ################ Def outputvalues
 	
+
 f2 = {}
 f2_bot = {}
 f2_char = {}
@@ -601,8 +608,7 @@ def_eqb.append(z3.And(eq_3b))
 
 		
 ################## lemma 20
-		
-################## lemma 20
+#Second merging map
 
 
 def_20b = []
@@ -738,14 +744,15 @@ def_20b.append(z3.And(eq20b_6))
 
 
 ################## lemma 21 part 2
+#Word rejected by the second merging map
 
 def_21b = []
 
 
 eq21b_1 = []
 eq21b_1 = z3.And(
-z3.PrefixOf(v2[0],""),
-z3.PrefixOf("",v2[0]))
+z3.PrefixOf(v[0],""),
+z3.PrefixOf("",v[0]))
 
 def_21b.append(z3.And(eq21b_1))
 
@@ -760,14 +767,14 @@ for index in range(1,n+1):
 					z3.And(
 					(z3.Length(u) >= index),
 					z3.And(
-					z3.PrefixOf(v2[index],element1),
-					z3.PrefixOf(element1,v2[index]))
+					z3.PrefixOf(v[index],element1),
+					z3.PrefixOf(element1,v[index]))
 					),
 					(z3.Or(
-					v2_bot[index],
+					v_bot[index],
 					z3.And(
-					z3.PrefixOf(v2[index-1],element2),
-					z3.PrefixOf(element2,v2[index-1])),
+					z3.PrefixOf(v[index-1],element2),
+					z3.PrefixOf(element2,v[index-1])),
 					z3.And(
 					z3.PrefixOf(z3.SubSeq(u,index,1),letter),
 					z3.PrefixOf(letter,z3.SubSeq(u,index,1))),
@@ -784,17 +791,28 @@ for element1 in domain:
 		conj.append(
 		z3.Implies(
 		z3.And(
-		z3.PrefixOf(v2[n],element1),
-		z3.PrefixOf(element1,v2[n])),
+		z3.PrefixOf(v[n],element1),
+		z3.PrefixOf(element1,v[n])),
 		z3.Implies(E2[element1][element2],
 		Table_bot[element2]
 		)
 		))
 
-eq21b_3.append(z3.And(z3.Or(v2_bot[n],z3.And(conj))))
+eq21b_3.append(z3.And(z3.Or(v_bot[n],z3.And(conj))))
 
 def_21b.append(z3.And(eq21b_3))
 
+
+#formula = []
+#formula.append(z3.And(outvalues))
+#formula.append(z3.And(def_eq))
+#formula.append(z3.And(def_20))
+#formula.append(z3.And(def_21))
+#formula.append(z3.And(def_eqb))
+#formula.append(z3.And(def_20b))
+#formula.append(z3.And(def_21b))
+
+#print(z3.solve(formula))
 
 
 formula = []
@@ -805,4 +823,13 @@ formula.append(z3.And(def_21))
 formula.append(z3.And(def_eqb))
 formula.append(z3.And(def_20b))
 formula.append(z3.And(def_21b))
-print(z3.solve(formula))
+
+
+
+s = z3.Solver()
+for i in range(10):
+    s.add(formula)
+if s.check() == z3.sat:
+    m = s.model()
+    print (sorted ([(d, m[d]) for d in m], key = lambda x: str(x[0])))
+
