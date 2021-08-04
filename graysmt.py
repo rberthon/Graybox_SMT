@@ -79,7 +79,7 @@ n = 4
 
 #Size of the longest output associated to a letter of u <- to be merged with 
 #bound
-bound_w = 3
+bound = 3
 
 
 # Accepted word
@@ -107,7 +107,7 @@ w_out = z3.String("w_out")
 w_char = {}
 for index1 in range(n):
 	w_char[index1] = []
-	for index2 in range(bound_w):
+	for index2 in range(bound):
 		w_char[index1].append(z3.String("w_char"+str(index1)+"_"+str(index2)))
 	
 
@@ -139,12 +139,33 @@ for element in domain:
 
 
 
+conj = []
+disj = {}
+for index in range(n+1):
+	disj[index] = []
+	disj[index].append(z3.PrefixOf(v[index],""))
+	for letter in inputalphabet:
+		disj[index].append(z3.And(
+		z3.PrefixOf(v[index],letter),
+		z3.PrefixOf(letter,v[index])))
+	if index > 1:
+		conj.append(z3.Implies(
+		z3.PrefixOf(v[index-1],""),
+		z3.PrefixOf(v[index],"")))
+	if index > 0:
+		conj.append(
+		z3.SubSeq(u,index-1,1) == v[index])
+	conj.append(z3.Or(disj[index]))
+outvalues.append(z3.And(conj))
+
+
+
 conj = {}
 disj = {}
 for index1 in range(n):
 	conj[index1] = []
 	disj[index1] = {}
-	for index2 in range(bound_w):
+	for index2 in range(bound):
 		disj[index1][index2] = []
 		disj[index1][index2].append(z3.PrefixOf(w_char[index1][index2],""))
 		for letter in outputalphabet:
@@ -365,7 +386,7 @@ for index in range(0,n+1):
 		)
 		)
 
-def_21.append(z3.And(eq21_1))
+#def_21.append(z3.And(eq21_1))
 
 
 eq21_2 = []
@@ -376,7 +397,7 @@ for index in range(1,n+1):
 				if element2+letter in domain:
 					eq21_2.append((
 					z3.Implies((z3.Length(u) >= index),
-					(z3.And(
+					(z3.Implies(z3.And(
 					z3.And(
 					z3.PrefixOf(v[index],element1),
 					z3.PrefixOf(element1,v[index])),
@@ -384,8 +405,8 @@ for index in range(1,n+1):
 					z3.PrefixOf(v[index-1],element2),
 					z3.PrefixOf(element2,v[index-1])),
 					z3.And(
-					z3.PrefixOf(z3.SubSeq(u,index,1),letter),
-					z3.PrefixOf(letter,z3.SubSeq(u,index,1))),
+					z3.PrefixOf(z3.SubSeq(u,index-1,1),letter),
+					z3.PrefixOf(letter,z3.SubSeq(u,index-1,1)))),
 					E[element1][element2+letter])
 					)
 					)
@@ -393,9 +414,8 @@ for index in range(1,n+1):
 
 def_21.append(z3.And(eq21_2))
 
-eq21_3 = z3.And(
-z3.PrefixOf(v[0],""),
-z3.PrefixOf("",v[0]))
+eq21_3 = z3.PrefixOf(v[0],"")
+#,z3.PrefixOf("a",v[1]))
 
 def_21.append(z3.And(eq21_3))
 
@@ -408,7 +428,7 @@ for element in domain:
 #			z3.PrefixOf(z3.Concat(f[element],delta[element][letter]),f[element+letter]),
 #			z3.PrefixOf(f[element+letter],z3.Concat(f[element],delta[element][letter]))))
 
-def_21.append(z3.And(eq21_4))
+#def_21.append(z3.And(eq21_4))
 
 
 eq21_5 = []
@@ -420,7 +440,7 @@ for index in range(1,n):
 			for letter in inputalphabet:
 				if element2+letter in domain:
 					disj[index].append(
-					z3.And(
+					z3.Implies(z3.And(
 					z3.And(
 					z3.PrefixOf(w[index],element1),
 					z3.PrefixOf(element1,w[index])),
@@ -429,7 +449,7 @@ for index in range(1,n):
 					z3.PrefixOf(element2,v[index-1])),
 					z3.And(
 					z3.PrefixOf(z3.SubSeq(u,index,1),letter),
-					z3.PrefixOf(letter,z3.SubSeq(u,index,1))),
+					z3.PrefixOf(letter,z3.SubSeq(u,index,1)))),
 					z3.And(
 					(w[index] == delta[element2][letter]))
 #					z3.PrefixOf(w[index],delta[element2][letter]),
@@ -486,7 +506,7 @@ w2_out = z3.String("w2_out")
 w2_char = {}
 for index1 in range(n):
 	w2_char[index1] = []
-	for index2 in range(bound_w):
+	for index2 in range(bound):
 		w2_char[index1].append(z3.String("w2_char"+str(index1)+"_"+str(index2)))
 	
 
@@ -501,6 +521,8 @@ for word in domain:
 
 ################ Def outputvalues
 	
+
+outvaluesb = []
 
 f2 = {}
 f2_bot = {}
@@ -533,7 +555,7 @@ for element in domain:
 		conj[element].append(z3.And(
 		z3.SubSeq(f2[element],index,1) == f2_char[element][index],
 		z3.Or(disj[element][index])))
-	outvalues.append(z3.And(conj[element]))
+	outvaluesb.append(z3.And(conj[element]))
 
 
 
@@ -542,7 +564,7 @@ disj = {}
 for index1 in range(n):
 	conj[index1] = []
 	disj[index1] = {}
-	for index2 in range(bound_w):
+	for index2 in range(bound):
 		disj[index1][index2] = []
 		disj[index1][index2].append(z3.PrefixOf(w2_char[index1][index2],""))
 		for letter in outputalphabet:
@@ -556,7 +578,7 @@ for index1 in range(n):
 		conj[index1].append(z3.And(
 		z3.SubSeq(w2[index1],index2,1) == w2_char[index1][index2],
 		z3.Or(disj[index1][index2])))
-	outvalues.append(z3.And(conj[index1]))
+	outvaluesb.append(z3.And(conj[index1]))
 
 #		disj.append(z3.Or(z3.Contains(letter,z3.SubSeq(f[element],i_value,1))))
 #	outvalues.append(
@@ -762,7 +784,7 @@ for index in range(1,n+1):
 		for element2 in domain:
 			for letter in inputalphabet:
 				if element2+letter in domain:
-					eq21_2.append(
+					eq21b_2.append(
 					z3.Implies(
 					z3.And(
 					(z3.Length(u) >= index),
@@ -783,7 +805,6 @@ for index in range(1,n+1):
 
 def_21b.append(z3.And(eq21b_2))
 
-
 eq21b_3 = []
 conj = []
 for element1 in domain:
@@ -803,16 +824,12 @@ eq21b_3.append(z3.And(z3.Or(v_bot[n],z3.And(conj))))
 def_21b.append(z3.And(eq21b_3))
 
 
-#formula = []
-#formula.append(z3.And(outvalues))
-#formula.append(z3.And(def_eq))
-#formula.append(z3.And(def_20))
-#formula.append(z3.And(def_21))
-#formula.append(z3.And(def_eqb))
-#formula.append(z3.And(def_20b))
-#formula.append(z3.And(def_21b))
 
-#print(z3.solve(formula))
+
+
+
+
+
 
 
 formula = []
@@ -820,16 +837,22 @@ formula.append(z3.And(outvalues))
 formula.append(z3.And(def_eq))
 formula.append(z3.And(def_20))
 formula.append(z3.And(def_21))
+formula.append(z3.And(outvaluesb))
 formula.append(z3.And(def_eqb))
 formula.append(z3.And(def_20b))
 formula.append(z3.And(def_21b))
 
 
 
+################## u is not the empty word
+formula.append(z3.And(z3.Not(z3.PrefixOf(u,""))))
+
+#print(z3.solve(formula))
 s = z3.Solver()
 for i in range(10):
     s.add(formula)
 if s.check() == z3.sat:
     m = s.model()
     print (sorted ([(d, m[d]) for d in m], key = lambda x: str(x[0])))
-
+else:
+	print("no solution")
